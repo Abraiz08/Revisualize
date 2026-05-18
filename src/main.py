@@ -1,6 +1,8 @@
 from google import genai
 from PIL import Image
 
+import json
+
 # The client gets the API key from the environment variable `GEMINI_API_KEY`.
 
 #{
@@ -36,7 +38,9 @@ from PIL import Image
 #   }
 # }
 
-#TODO maybe try spliutting the file into line by line and then sending to ai with the line at which the last visual beat left off, that way we wont have to send the whole wall of text everytime, possibly using less tokens?
+#TODO maybe try splitting the file into line by line and then sending to ai with the line at which the last visual beat left off, that way we wont have to send the whole wall of text everytime, possibly using less tokens?
+#TODO make different services, eg, the image generation starts as soon as we have the first json panel data
+#TODO save character descriptions somewhere and sue them to generate consistently 
 
 client = genai.Client()
 
@@ -47,27 +51,32 @@ PROMPT = 'Act as a storyboard artist. Given a script or a scene, find the next v
 CONTEXT = '\nThis is all the context so far, the next visual beat should be after all this context:\n'
 
 def main():
+
     #TODO make this typesafe
 
-    num_panels = input("Enter number of panels: ")
-    createSceneObjects(int(num_panels))
-      # response = generateImage(scene)
-    # for part in response.parts:
-    #     if part.text is not None:
-    #         print(part.text)
-    #     elif part.inline_data is not None:
-    #         image = part.as_image()
-    #         image.save("output/generated_image.png")
+    # num_panels = input("Enter number of panels: ")
+    # panelsJSONString = createSceneObjects(int(num_panels))
+    # panelsdata = json.loads(panelsJSONString)
 
-def createSceneObjects(num_panels: int):
+    # with open("data/panelsdata.json", "w") as file:
+    #     json.dump(panelsdata, file)
+    
+    with open('data/panelsdata.json', 'r') as file:
+        panelsdata = json.load(file)
+    
+    generateStoryboard(panelsdata)
+
+def createSceneObjects(num_panels: int) -> str:
     with open('data/scene.txt', 'r') as file:
         data = file.read()
     scene = data
     context = ''
-    #TODO prime the AI to split the scene into num_panels visual beats first before running this
-    for i in range(num_panels):
-        context += "panel number: " + str(i) + "\n" + decomposeSceneToJSON(scene, context) + "\n"
-    print(context)
+    #TODO prime the AI to split the scene into num_panels visual beats first before running this (to cover the full scene)
+    for i in range(num_panels):  
+        context += "{\n\"panel_number\": " + "\""+str(i)+"\"," + decomposeSceneToJSON(scene, context)[1:]
+        if (i != num_panels - 1):
+            context += ","
+    return "["+context+"]"
 
 def decomposeSceneToJSON(scene: str, context: str) -> str:
     #TODO runs too many times with increasing prompt size
@@ -77,12 +86,23 @@ def decomposeSceneToJSON(scene: str, context: str) -> str:
     )
     return response.text
 
-def generateImage(scene: str) -> genai.types.GenerateContentResponse:
+def generateStoryboard(panelsdata: dict):
+    for panel in panelsdata:
+        generatePanel(str(panel), panel["panel_number"])
+
+def generatePanel(panel: str, panel_number: str):
+#-> genai.types.GenerateContentResponse2:
     response = client.models.generate_content(
         model = "gemini-3.1-flash-image-preview",
-        contents = "Generate an image of " + scene
+        contents = "Generate an image of " + panel
     )
-    return response
+
+    for part in response.parts:
+        if part.text is not None:
+            print(part.text)
+        elif part.inline_data is not None:
+            image = part.as_image()
+            image.save("output/generated_image" + panel_number + ".png")
 
 if __name__ == "__main__":
-    main()
+    main() 
