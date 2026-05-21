@@ -1,7 +1,8 @@
-from google import genai
-from PIL import Image
-
 import json
+
+
+import config
+from models import Panel, VisualDescription
 
 # The client gets the API key from the environment variable `GEMINI_API_KEY`.
 
@@ -42,59 +43,49 @@ import json
 #TODO make different services, eg, the image generation starts as soon as we have the first json panel data
 #TODO save character descriptions somewhere and sue them to generate consistently 
 
-client = genai.Client()
-
-PROMPT = 'Act as a storyboard artist. Given a script or a scene, find the next visual beat for which to create a storyboard panel, analyze it and output a JSOn object strictly in the form:' \
-'\n{\n"visual_description": {\n\t"subject":\n\t"action":\n\t"setting":\n\t"key_elements":[]\n\t}\n}'\
-'\nOutput the JSON object and nothing else. This is the script/scene:\n'
-
-CONTEXT = '\nThis is all the context so far, the next visual beat should be after all this context:\n'
 
 def main():
+    num_panels = int(input("Enter number of panels: "))
+    panels = createPanelObjects(num_panels)
+    with open("data/panelsdata.json", "w") as file:
+        json.dump([p.model_dump() for p in panels], file, indent=2)
 
-    #TODO make this typesafe
-
-    # num_panels = input("Enter number of panels: ")
-    # panelsJSONString = createSceneObjects(int(num_panels))
-    # panelsdata = json.loads(panelsJSONString)
-
-    # with open("data/panelsdata.json", "w") as file:
-    #     json.dump(panelsdata, file)
-    
     with open('data/panelsdata.json', 'r') as file:
-        panelsdata = json.load(file)
-    
-    generateStoryboard(panelsdata)
+        panels = [Panel.model_validate(p) for p in json.load(file)]
 
-def createSceneObjects(num_panels: int) -> str:
+    generateStoryboard(panels)
+
+def createPanelObjects(num_panels: int) -> list[Panel]:
     with open('data/scene.txt', 'r') as file:
-        data = file.read()
-    scene = data
-    context = ''
+        scene = file.read()
+    panels: list[Panel] = []
     #TODO prime the AI to split the scene into num_panels visual beats first before running this (to cover the full scene)
-    for i in range(num_panels):  
-        context += "{\n\"panel_number\": " + "\""+str(i)+"\"," + decomposeSceneToJSON(scene, context)[1:]
-        if (i != num_panels - 1):
-            context += ","
-    return "["+context+"]"
+    for i in range(num_panels):
+        visual_description = decomposeNextBeat(scene, panels)
+        panels.append(Panel(panel_number=i, visual_description=visual_description))
+    return panels
 
-def decomposeSceneToJSON(scene: str, context: str) -> str:
+def decomposeNextBeat(scene: str, panels_so_far: list[Panel]) -> VisualDescription:
     #TODO runs too many times with increasing prompt size
-    response = response = client.models.generate_content(
-        model = "gemini-3-flash-preview",
-        contents = PROMPT + scene + CONTEXT + context
+    context_json = json.dumps([p.model_dump() for p in panels_so_far], indent=2)
+    response = config.CLIENT.models.generate_content(
+        model = config.TEXT_MODEL,
+        contents=config.BASE_PROMPT + scene + config.CONTEXT_PROMPT + context_json,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": VisualDescription,
+        },
     )
-    return response.text
+    return response.parsed
 
-def generateStoryboard(panelsdata: dict):
-    for panel in panelsdata:
-        generatePanel(str(panel), panel["panel_number"])
+def generateStoryboard(panels: list[Panel]):
+    for panel in panels:
+        generatePanel(panel)
 
-def generatePanel(panel: str, panel_number: str):
-#-> genai.types.GenerateContentResponse2:
-    response = client.models.generate_content(
-        model = "gemini-3.1-flash-image-preview",
-        contents = "Generate an image of " + panel
+def generatePanel(panel: Panel):
+    response = config.CLIENT.models.generate_content(
+        model = config.IMAGE_MODEL,
+        contents="Generate an image of " + panel.model_dump_json(),
     )
 
     for part in response.parts:
@@ -102,7 +93,7 @@ def generatePanel(panel: str, panel_number: str):
             print(part.text)
         elif part.inline_data is not None:
             image = part.as_image()
-            image.save("output/generated_image" + panel_number + ".png")
+            image.save(f"output/generated_image{panel.panel_number}.png")
 
 if __name__ == "__main__":
     main() 

@@ -1,1 +1,32 @@
-[{"panel_number": "0", "visual_description": {"subject": "Mohan", "action": "Mohan leans forward with sudden intensity in his duct-taped recliner, his face illuminated by the flickering blue light of the TV as he frantically mashes the buttons on his controller.", "setting": "The center of the weathered, dimly lit living room.", "key_elements": ["Video game controller", "Duct-taped recliner", "Flickering TV glow", "Flowing loungewear"]}}, {"panel_number": "1", "visual_description": {"subject": "Kabir and Vihaan", "action": "Kabir sits rigidly in his chair, his hands folded self-consciously in his lap after retracting them from the lamp, while Vihaan slumps beside him, focused on peeling the label off his beer bottle with a smirk.", "setting": "The corner of the dimly lit living room, framed by the warm, localized glow of the table lamp.", "key_elements": ["Silver ear studs", "Peeling beer label", "Whiskey glass", "Mismatched furniture"]}}]
+[
+  {
+    "panel_number": 0,
+    "visual_description": {
+      "subject": "Kabir",
+      "action": "squints while adjusting a table lamp next to him to cast a specific glow over his whiskey glass as he sits in the corner",
+      "setting": "a weathered, dimly lit suburban living room filled with mismatched furniture and amateur photographs on the walls",
+      "key_elements": [
+        "silver ear studs",
+        "whiskey glass",
+        "table lamp",
+        "Vihaan peeling a beer label",
+        "Mohan and Vedant playing video games on a TV in the center of the room"
+      ]
+    }
+  },
+  {
+    "panel_number": 1,
+    "visual_description": {
+      "subject": "Kabir",
+      "action": "reaches his hand back toward the table lamp to make further minute adjustments while Vihaan observes him with an amused expression",
+      "setting": "the cluttered, dimly lit suburban living room at night",
+      "key_elements": [
+        "table lamp",
+        "Kabir's hand",
+        "whiskey glass",
+        "Vihaan's beer bottle",
+        "mismatched furniture"
+      ]
+    }
+  }
+]
