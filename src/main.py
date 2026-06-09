@@ -1,5 +1,6 @@
 from google import genai
 from PIL import Image
+from pathlib import Path
 
 import json
 
@@ -96,6 +97,9 @@ def generatePanel(panel: str, panel_number: str):
         model = "gemini-3.1-flash-image-preview",
         contents = "Generate an image of " + panel
     )
+
+    output_dir = Path("output")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     for part in response.parts:
         if part.text is not None:
